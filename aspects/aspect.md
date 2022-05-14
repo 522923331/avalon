@@ -94,3 +94,47 @@ AOP基于动态代理实现的：
 - 抛出异常后通知：原始方法抛出异常后执行，如果原始方法没有抛出异常，无法执行
 - 应    用：对原始方法中出现的异常信息进行处理
 
+# 封装成starter
+
+如果想把切面代码封装成一个starter，只需在上面的基础上，再做如下两步(需要注意的是，该项目是聚合工程，如果封装starter，可以单独创建一个工程，如果直接通过这个项目打包成jar，也可以用，但是需要依赖avalon)：
+
+## 1.创建配置类
+
+```java
+package iplay.cool.config;
+
+import iplay.cool.annotation.SysLog;
+import iplay.cool.aspect.SysLogAspect;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * 自定义starter配置类
+ * 当环境中存在SysLog修饰的方法时，才加载这个类，做到动态插拔作用
+ * @author dove
+ * @date 2022/5/14 23:44
+ */
+@Configuration
+@ConditionalOnBean(annotation = SysLog.class)
+public class MyLogConfiguration {
+    @Bean
+    public SysLogAspect sysLogAspect(){
+        return new SysLogAspect();
+    }
+}
+```
+
+## 2.创建spring.factories
+
+（starter的配置文件，必须放在resources/META-INF文件夹下）
+
+```xml
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  iplay.cool.config.MyLogConfiguration
+```
+
+
+
+
+
