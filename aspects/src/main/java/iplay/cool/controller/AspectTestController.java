@@ -1,7 +1,9 @@
 package iplay.cool.controller;
 
 import iplay.cool.annotation.AfterAnno;
+import iplay.cool.annotation.AroundAnno;
 import iplay.cool.annotation.BeforeAnno;
+import iplay.cool.model.Person;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -43,5 +45,12 @@ public class AspectTestController {
         System.out.println("afterThrowingTest测试-controller");
         int i = 1 / 0;
         return "afterThrowingTest测试end--->String值:" + string;
+    }
+
+    @AroundAnno
+    @PostMapping("aroundTest")
+    public String aroundTest(@RequestBody Person person){
+        System.out.println(person);
+        return "aroundTest测试end--->String值:" + person.getName();
     }
 }

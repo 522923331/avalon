@@ -1,12 +1,18 @@
 package iplay.cool.aspect;
 
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import iplay.cool.annotation.AfterAnno;
 import iplay.cool.annotation.BeforeAnno;
+import iplay.cool.model.Animal;
+import iplay.cool.model.Person;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.*;
+import org.aspectj.lang.reflect.CodeSignature;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -74,8 +80,8 @@ public class AllAspect {
 
     }
 
-    //        @Pointcut(value = "@annotation(iplay.cool.annotation.BeforeAnno)")
-    @Pointcut(value = "execution(public String iplay.cool.controller.AspectTestController.pointCutTest())")
+            @Pointcut(value = "@annotation(iplay.cool.annotation.AroundAnno)")
+//    @Pointcut(value = "execution(public String iplay.cool.controller.AspectTestController.pointCutTest())")
     public void pointCut() {
     }
 
@@ -96,6 +102,31 @@ public class AllAspect {
     public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
         //获取执行签名信息
         Signature signature = joinPoint.getSignature();
+
+
+        //环绕多个方法时的处理逻辑
+        CodeSignature codeSignature = (CodeSignature) signature;
+        //获取参数的类型这里为iplay.cool.model.Person，多个被切接口需要继承同一个超类（比如多个被切接口的入参都继承Animal），
+        // 不然就不能写成下面的方式了，只能硬编码或者通过转换成jsonObject来处理（通过jsonObject来处理也得有共性的字段名称，不然每个接口的参数的获取也要单独写）。
+        Class<? extends Animal>[] parameterTypes = codeSignature.getParameterTypes();
+        //因为只有一个参数，这取下标为0的数据 通过 <? extends Animal>可以转成对应的animal
+        Class<? extends Animal> parameterType = parameterTypes[0];
+        ObjectMapper objectMapper = new ObjectMapper();
+        //这里获取参数里面的数据
+        Object arg = joinPoint.getArgs()[0];
+        String value = objectMapper.writeValueAsString(arg);
+        Animal animal = objectMapper.readValue(value, parameterType);
+        //可以通过instanceof来转成对应的入参对象，进而进行操作，这是一种方式。（方式一）
+        if (animal instanceof Person){
+            Person person = (Person)animal;
+            System.out.println("获取到的是参数为person的接口的参数="+person);
+        }
+        //方式二：通过hutool包的JSONUtil将数据转换成jsonObject来进行操作，基于多个被切接口有共性的字段命名，比如person有name，dog也有name等。
+        JSONObject jsonObject = JSONUtil.parseObj(arg);
+        String name = jsonObject.get("name")+"";
+
+
+
         //通过签名获取执行类型（接口名）
         String targetClass = signature.getDeclaringTypeName();
         //通过签名获取执行操作名称（方法名）
