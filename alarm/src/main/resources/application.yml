@@ -1,0 +1,4 @@
+alarm:
+  lark:
+    enabled: true
+    alertUrl: https://open.larksuite.com/open-apis/bot/v2/hook/f9c42b78-6334-416f-8e4a-d45123f2f025
