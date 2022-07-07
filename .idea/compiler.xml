@@ -9,8 +9,8 @@
         <outputRelativeToContentRoot value="true" />
         <module name="aspects" />
         <module name="pattern" />
-        <module name="utils" />
         <module name="alarm" />
+        <module name="utils" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>

@@ -1,5 +1,6 @@
 package iplay.cool.aspect;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,8 +19,13 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author dove
@@ -124,10 +130,12 @@ public class AllAspect {
         //方式二：通过hutool包的JSONUtil将数据转换成jsonObject来进行操作，基于多个被切接口有共性的字段命名，比如person有name，dog也有name等。
         JSONObject jsonObject = JSONUtil.parseObj(arg);
         String name = jsonObject.get("name")+"";
+		//beanUtil不会更改对象生成map后，字段的顺序，pojoToMap会改变生成map后，字段的顺序
+		Map<String, Object> map = BeanUtil.beanToMap(animal);
+//		Map<String, Object> map =pojoToMap(animal);
 
 
-
-        //通过签名获取执行类型（接口名）
+		//通过签名获取执行类型（接口名）
         String targetClass = signature.getDeclaringTypeName();
         //通过签名获取执行操作名称（方法名）
         String targetMethod = signature.getName();
@@ -187,4 +195,35 @@ public class AllAspect {
         System.err.println("切入点异常-->:" + e);
     }
 
+	/**
+	 * 如果如果有注解，可以自己实现，否则建议使用hutool包的工具类
+	 */
+	//	public static <T> Map<String, Object> pojoToMap(T pojo) {
+//		Map<String, Object> returnMap = new HashMap<>();
+//		Class<?> clazz = pojo.getClass();
+//		//向上循环  遍历父类
+//		for (; clazz != Object.class; clazz = clazz.getSuperclass()) {
+//			Field[] fields = clazz.getDeclaredFields();
+//			for (Field field : fields) {
+//				//获取该字段的注解
+//				SignIgnore annotation = field.getAnnotation(SignIgnore.class);
+//				if (annotation == null) {
+//					field.setAccessible(true);
+//					Object fieldVal = null;
+//					try {
+//						fieldVal = field.get(pojo);
+//					} catch (IllegalAccessException ignored) {
+//					}
+//					if (Objects.isNull(fieldVal)) {
+//						continue;
+//					}
+//					if (fieldVal instanceof BigDecimal) {
+//						fieldVal = ((BigDecimal) fieldVal).stripTrailingZeros().toPlainString();
+//					}
+//					returnMap.put(field.getName(), fieldVal);
+//				}
+//			}
+//		}
+//		return returnMap;
+//	}
 }
