@@ -8,6 +8,7 @@ import iplay.cool.annotation.AfterAnno;
 import iplay.cool.annotation.BeforeAnno;
 import iplay.cool.model.Animal;
 import iplay.cool.model.Person;
+import iplay.cool.model.Rsp;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -111,17 +112,19 @@ public class AllAspect {
 
 
         //环绕多个方法时的处理逻辑
-        CodeSignature codeSignature = (CodeSignature) signature;
+		MethodSignature methodSignature = (MethodSignature) signature;
         //获取参数的类型这里为iplay.cool.model.Person，多个被切接口需要继承同一个超类（比如多个被切接口的入参都继承Animal），
         // 不然就不能写成下面的方式了，只能硬编码或者通过转换成jsonObject来处理（通过jsonObject来处理也得有共性的字段名称，不然每个接口的参数的获取也要单独写）。
-        Class<? extends Animal>[] parameterTypes = codeSignature.getParameterTypes();
+        Class<? extends Animal>[] parameterTypes = methodSignature.getParameterTypes();
         //因为只有一个参数，这取下标为0的数据 通过 <? extends Animal>可以转成对应的animal
         Class<? extends Animal> parameterType = parameterTypes[0];
         ObjectMapper objectMapper = new ObjectMapper();
         //这里获取参数里面的数据
         Object arg = joinPoint.getArgs()[0];
+		//获取对象方式Jackson的objectMapper和hutool包的JSONUtil都可以，个人觉得hutool封装的更好一点
         String value = objectMapper.writeValueAsString(arg);
-        Animal animal = objectMapper.readValue(value, parameterType);
+//        Animal animal = objectMapper.readValue(value, parameterType);
+		Animal animal = JSONUtil.toBean(JSONUtil.parseObj(arg), parameterType);
         //可以通过instanceof来转成对应的入参对象，进而进行操作，这是一种方式。（方式一）
         if (animal instanceof Person){
             Person person = (Person)animal;
@@ -129,11 +132,29 @@ public class AllAspect {
         }
         //方式二：通过hutool包的JSONUtil将数据转换成jsonObject来进行操作，基于多个被切接口有共性的字段命名，比如person有name，dog也有name等。
         JSONObject jsonObject = JSONUtil.parseObj(arg);
-        String name = jsonObject.get("name")+"";
+
+		String name = jsonObject.get("name")+"";
 		//beanUtil不会更改对象生成map后，字段的顺序，pojoToMap会改变生成map后，字段的顺序
 		Map<String, Object> map = BeanUtil.beanToMap(animal);
-//		Map<String, Object> map =pojoToMap(animal);
-
+		//		Map<String, Object> map =pojoToMap(animal);
+		//如果是复杂对象：
+		/**
+		 * @Data
+		 * public class Rsp<T>{
+		 *     private int code;
+		 *     private String message;
+		 *     private T data;
+		 * }
+		 * 返回如：Rsp<Person>这样的数据，可能需要先判断接口返回的code是不是200，那么就需要先转为对象
+		 */
+		Object retObj = joinPoint.proceed(joinPoint.getArgs());
+		Class returnType = methodSignature.getReturnType();
+		//解析出来的rsp的data是LinkedHashMap
+		Rsp<Map<String, Object>> rsp = (Rsp<Map<String, Object>>) JSONUtil.toBean(JSONUtil.parseObj(retObj), returnType);
+		if (rsp.isSuccess()){
+			Map<String, Object> data = rsp.getData();
+			Object age = data.get("age");
+		}
 
 		//通过签名获取执行类型（接口名）
         String targetClass = signature.getDeclaringTypeName();
