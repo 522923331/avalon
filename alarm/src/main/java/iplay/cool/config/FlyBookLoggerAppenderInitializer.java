@@ -1,10 +1,6 @@
 package iplay.cool.config;
 
-/**
- *
- * @author dove
- * @date 2022/6/20
- */
+
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
@@ -16,12 +12,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
-
 /**
- * 飞书日志初始化器
  *
- * @author venus
- * @version 1
+ * @author dove
+ * @date 2022/6/20
  */
 @Component
 @Slf4j
