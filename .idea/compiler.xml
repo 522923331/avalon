@@ -10,6 +10,7 @@
         <module name="aspects" />
         <module name="pattern" />
         <module name="alarm" />
+        <module name="service_handler" />
         <module name="utils" />
       </profile>
     </annotationProcessing>
@@ -23,6 +24,7 @@
       <module name="aspect" options="-parameters" />
       <module name="aspects" options="-parameters" />
       <module name="pattern" options="-parameters" />
+      <module name="service_handler" options="-parameters" />
       <module name="utils" options="-parameters" />
     </option>
   </component>

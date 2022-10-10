@@ -18,6 +18,7 @@
         <module>alarm</module>
         <module>utils</module>
         <module>pattern</module>
+        <module>service_handler</module>
     </modules>
 
     <properties>
