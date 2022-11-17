@@ -20,6 +20,7 @@ public class BlindBoxHandlerFactory implements ApplicationContextAware, Initiali
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
+		//getBeansOfType，也就是说，BlindBoxHandler的子类都得是bean
 		applicationContext.getBeansOfType(BlindBoxHandler.class).values().forEach(handler -> BOX_MAP.put(handler.getHandlerType(), handler));
 	}
 
