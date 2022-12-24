@@ -34,6 +34,19 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <!--springboot的监控功能-->
+        <!--需要添加配置：
+        management:
+            port: 54001 如果不指定，则使用和server相同的端口
+            # close security. 关闭身份验证，否则无法查询出数据
+            security:
+                enabled: false
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!--引入面向切面依赖-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
