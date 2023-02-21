@@ -1,0 +1,9 @@
+通过试验发现 无论使用@Order主键定义顺序还是实现Ordered接口，无论放到拦截器上还是放到@Bean注解的位置都不能生效
+解决方式就是 在注册拦截器时，按顺序注册，或者调用InterceptorRegistry.order(x)函数来排序
+spring中拦截器执行顺序：
+1、默认的注册顺序
+2、InterceptorRegistry#order(int)方法指定顺序，值越小优先级越高，默认是0
+
+通过@Bean注入的拦截器，也不能通过实现Ordered接口来实现排序。可以通过如下两种方式：
+1、在InterceptorRegistry中添加该拦截器
+2、修改InterceptorRegistry中的拦截器order。默认的是0，那么改成大于0就会在@Bean注入的后面执行，小于0就是在@Bean前面执行
