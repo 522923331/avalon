@@ -1,0 +1,112 @@
+server:
+  #端口号
+  port: 8080
+
+spring:
+  application:
+    name: echain-server
+  cloud:
+    nacos:
+      discovery:
+        server-addr: http://10.169.1.46:8848,http://10.169.1.10:8858,http://10.169.1.76:8868
+        group: COMMON_QA
+  main:
+    allow-bean-definition-overriding: true
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+  redis:
+    host: 10.169.21.152
+    port: 6379
+    database: 0
+    password: g67M9D?rWH4s
+    timeout: 5s
+    jedis:
+      pool:
+        min-idle: 1
+        max-idle: 100
+        max-active: 100
+        max-wait: 10s
+
+  datasource:
+    #连接池配置
+    type: com.alibaba.druid.pool.DruidDataSource
+    driverClassName: com.mysql.jdbc.Driver
+    url: jdbc:mysql://10.169.21.61:3306/e_chain?useunicode=true&autoReconnect=true&tinyInt1isBit=false&allowMultiQueries=true&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=convertToNull&useSSL=false
+    username: echianserver
+    password: echianserver1#c87z
+    druid:
+      #    ?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull
+      # 初始连接数
+      initialSize: 10
+      # 最小连接池数量
+      minIdle: 100
+      # 最大连接池数量
+      maxActive: 1000
+      # 配置获取连接等待超时的时间
+      maxWait: 60000
+      # 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒
+      timeBetweenEvictionRunsMillis: 60000
+      # 配置一个连接在池中最小生存的时间，单位是毫秒
+      minEvictableIdleTimeMillis: 300000
+      # 配置检测连接是否有效
+      validationQuery: SELECT 1 FROM DUAL
+      testWhileIdle: true
+      testOnBorrow: false
+      testOnReturn: false
+
+mybatis-plus:
+  mapper-locations: classpath:/mapper/**/*.xml
+  global-config:
+    banner: false
+  configuration:
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+logging:
+  level:
+    com:
+      echain:
+        mapper: DEBUG
+
+rocketmq:
+  name-server: 10.169.21.243:8100;10.169.21.105:8100
+  producer:
+    group: e_chain_topic_default
+    retryTimesWhenSendFailed: 16
+    retryTimesWhenSendAsyncFailed: 16
+    sendMessageTimeout: 30000
+    retryNextServer: true
+    #accessKey: xxx
+    #secretKey: xxx
+    enableMsgTrace: false
+  producers:
+    upChain:
+      group: e_chain_group
+      topic: e_chain_topic
+      tag: e_chain_tag
+    gasFee:
+      group: e_chain_gas_fee_group
+      topic: e_chain_gas_fee_topic
+      tag: e_chain_gas_fee_tag
+  consumers:
+    upChain:
+      group: e_chain_group
+      topic: e_chain_topic
+    gasFee:
+      group: e_chain_gas_fee_group
+      topic: e_chain_gas_fee_topic
+
+fisco:
+  config:
+    writePath: /fisco-config-write.yml
+
+timestamp:
+  validity: 10000
+
+limiter:
+  consumerMaxPermits: 2500
+  consumerInterval: 500
+  producerMaxPermits: 8000
+  producerInterval: 1000
+
