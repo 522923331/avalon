@@ -26,6 +26,12 @@
 // *             <artifactId>okhttp</artifactId>
 // *             <version>4.9.3</version>
 // *         </dependency>
+// *         不使用kotlin就报错
+// *         <dependency>
+// *             <groupId>org.jetbrains.kotlin</groupId>
+// *             <artifactId>kotlin-stdlib</artifactId>
+// *             <version>1.3.70</version>
+// *         </dependency>
 // */
 //@Slf4j
 //@Component
