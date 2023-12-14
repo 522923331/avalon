@@ -28,7 +28,7 @@ public class LogIpPlugin extends ClassicConverter implements ApplicationContextA
     }
 
     @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+    public void setApplicationContext(ApplicationContext applicationContext) {
         InetAddress[] allByName = new InetAddress[0];
         try {
             allByName = InetAddress.getAllByName(InetAddress.getLocalHost().getHostName());

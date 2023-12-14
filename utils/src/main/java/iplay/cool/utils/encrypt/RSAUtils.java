@@ -1,6 +1,7 @@
-package iplay.cool.utils;
+package iplay.cool.utils.encrypt;
 
-import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
+
+import cn.hutool.core.codec.Base64;
 
 import java.security.KeyFactory;
 import java.security.PrivateKey;
