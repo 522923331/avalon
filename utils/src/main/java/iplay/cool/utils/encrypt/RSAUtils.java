@@ -1,77 +1,247 @@
 package iplay.cool.utils.encrypt;
 
+import cn.hutool.http.HttpUtil;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
+import org.apache.tomcat.util.codec.binary.Base64;
 
-import cn.hutool.core.codec.Base64;
-
-import java.security.KeyFactory;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import javax.crypto.Cipher;
+import java.io.ByteArrayOutputStream;
+import java.security.*;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
- * RSA工具类
- *
+ * @author wu.dang
+ * @since 2024/7/8
  */
 public class RSAUtils {
 
-	public static final String SIGN_ALGORITHMS = "SHA256withRSA";
+	/**
+	 * RSA最大加密明文大小
+	 */
+	private static final int MAX_ENCRYPT_BLOCK = 117;
 
 	/**
-	 * @param content:签名的参数内容
-	 * @param privateKey：私钥
-	 * @return
+	 * RSA最大解密密文大小
 	 */
-	public static String sign(String content, String privateKey) {
-		String charset = "utf-8";
-		try {
-			PKCS8EncodedKeySpec priPKCS8 = new PKCS8EncodedKeySpec(Base64.decode(privateKey));
-			KeyFactory keyf = KeyFactory.getInstance("RSA");
-			PrivateKey priKey = keyf.generatePrivate(priPKCS8);
-			java.security.Signature signature = java.security.Signature.getInstance(SIGN_ALGORITHMS);
-			signature.initSign(priKey);
-			signature.update(content.getBytes(charset));
-			byte[] signed = signature.sign();
-			return Base64.encode(signed);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return null;
+	private static final int MAX_DECRYPT_BLOCK = 128;
+
+	/**
+	 * 获取密钥对
+	 *
+	 * @return 密钥对
+	 */
+	public static KeyPair getKeyPair() throws Exception {
+		KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+		generator.initialize(1024);
+		return generator.generateKeyPair();
 	}
 
 	/**
-	 * @param content：验证参数的内容
-	 * @param sign：签名
-	 * @param publicKey：公钥
+	 * 获取私钥
+	 *
+	 * @param privateKey 私钥字符串
 	 * @return
 	 */
-	public static boolean doCheck(String content, String sign, String publicKey) {
-		try {
-			KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-			byte[] encodedKey = Base64.decode(publicKey);
-			PublicKey pubKey = keyFactory.generatePublic(new X509EncodedKeySpec(encodedKey));
-			java.security.Signature signature = java.security.Signature.getInstance(SIGN_ALGORITHMS);
-			signature.initVerify(pubKey);
-			signature.update(content.getBytes("utf-8"));
-			boolean bverify = signature.verify(Base64.decode(sign));
-			return bverify;
-		} catch (Exception e) {
-			e.printStackTrace();
+	public static PrivateKey getPrivateKey(String privateKey) throws Exception {
+		KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+		byte[] decodedKey = Base64.decodeBase64(privateKey.getBytes());
+		PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decodedKey);
+		return keyFactory.generatePrivate(keySpec);
+	}
+
+	/**
+	 * 获取公钥
+	 *
+	 * @param publicKey 公钥字符串
+	 * @return
+	 */
+	public static PublicKey getPublicKey(String publicKey) throws Exception {
+		KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+		byte[] decodedKey = Base64.decodeBase64(publicKey.getBytes());
+		X509EncodedKeySpec keySpec = new X509EncodedKeySpec(decodedKey);
+		return keyFactory.generatePublic(keySpec);
+	}
+
+	/**
+	 * RSA加密
+	 *
+	 * @param data 待加密数据
+	 * @param publicKey 公钥
+	 * @return
+	 */
+	public static String encrypt(String data, PublicKey publicKey) throws Exception {
+		Cipher cipher = Cipher.getInstance("RSA");
+		cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+		int inputLen = data.getBytes().length;
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		int offset = 0;
+		byte[] cache;
+		int i = 0;
+		// 对数据分段加密
+		while (inputLen - offset > 0) {
+			if (inputLen - offset > MAX_ENCRYPT_BLOCK) {
+				cache = cipher.doFinal(data.getBytes(), offset, MAX_ENCRYPT_BLOCK);
+			} else {
+				cache = cipher.doFinal(data.getBytes(), offset, inputLen - offset);
+			}
+			out.write(cache, 0, cache.length);
+			i++;
+			offset = i * MAX_ENCRYPT_BLOCK;
 		}
-		return false;
+		byte[] encryptedData = out.toByteArray();
+		out.close();
+		// 获取加密内容使用base64进行编码,并以UTF-8为标准转化成字符串
+		// 加密后的字符串
+		return new String(Base64.encodeBase64String(encryptedData));
+	}
+
+	/**
+	 * RSA解密
+	 *
+	 * @param data 待解密数据
+	 * @param privateKey 私钥
+	 * @return
+	 */
+	public static String decrypt(String data, PrivateKey privateKey) throws Exception {
+		Cipher cipher = Cipher.getInstance("RSA");
+		cipher.init(Cipher.DECRYPT_MODE, privateKey);
+		byte[] dataBytes = Base64.decodeBase64(data);
+		int inputLen = dataBytes.length;
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		int offset = 0;
+		byte[] cache;
+		int i = 0;
+		// 对数据分段解密
+		while (inputLen - offset > 0) {
+			if (inputLen - offset > MAX_DECRYPT_BLOCK) {
+				cache = cipher.doFinal(dataBytes, offset, MAX_DECRYPT_BLOCK);
+			} else {
+				cache = cipher.doFinal(dataBytes, offset, inputLen - offset);
+			}
+			out.write(cache, 0, cache.length);
+			i++;
+			offset = i * MAX_DECRYPT_BLOCK;
+		}
+		byte[] decryptedData = out.toByteArray();
+		out.close();
+		// 解密后的内容
+		return new String(decryptedData, "UTF-8");
+	}
+
+	/**
+	 * 签名
+	 *
+	 * @param data 待签名数据
+	 * @param privateKey 私钥
+	 * @return 签名
+	 */
+	public static String sign(String data, PrivateKey privateKey) throws Exception {
+		byte[] keyBytes = privateKey.getEncoded();
+		PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
+		KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+		PrivateKey key = keyFactory.generatePrivate(keySpec);
+		Signature signature = Signature.getInstance("SHA256withRSA");
+		signature.initSign(key);
+		signature.update(data.getBytes());
+		return new String(Base64.encodeBase64(signature.sign()));
+	}
+
+	/**
+	 * 验签
+	 *
+	 * @param srcData 原始字符串
+	 * @param publicKey 公钥
+	 * @param sign 签名
+	 * @return 是否验签通过
+	 */
+	public static boolean verify(String srcData, PublicKey publicKey, String sign) throws Exception {
+		byte[] keyBytes = publicKey.getEncoded();
+		X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
+		KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+		PublicKey key = keyFactory.generatePublic(keySpec);
+		Signature signature = Signature.getInstance("SHA256withRSA");
+		signature.initVerify(key);
+		signature.update(srcData.getBytes());
+		return signature.verify(Base64.decodeBase64(sign.getBytes()));
+	}
+
+	/**
+	 * 对数据进行排序后拼接为字符串
+	 * @param jsonObject
+	 * @return
+	 */
+	public static String getSortedData(JSONObject jsonObject){
+		List<String> keys = new ArrayList<>(jsonObject.keySet());
+		StringBuilder sb = new StringBuilder();
+		Collections.sort(keys);
+		for (String key : keys) {
+			sb.append(jsonObject.get(key));
+		}
+		return sb.toString();
 	}
 
 	public static void main(String[] args) {
-		long time = System.currentTimeMillis();
-		String content="3203001000646087570" + "-" + time;
-		String signstr= RSAUtils.sign(content, "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDGEuJYfuO5i1kcckBu4yf+nGPcXMJ+2olH2yQH9l1uN5Bc2CGFb5cPEALC1FTRyi9NGxQw9YlVzg/mbhNasVqx320jw8HhLD/deIx2pWnDkcnIvmX5mnB9EJYmHl5WvxY2zxlUVov4+CQHH7ZrTtceBdaXISHieIuVnWu7CVamvMJLdr5r6DK4hKLf2WcIXbebNlFBdEJZNfA603BwnkB6BOc0y2GmxoQN3gEBBQ7Gg6ccvMHoZYVwzvocobNbQ11526BFCOyzoeNJNr/xnbJAs2j7GhZfRi/kT7iUXgylalPKyiMvovMYK/mkB53tPLi2UTxanJKhyl9IMCzss6RJAgMBAAECggEANK9hNVjLCdde5IofSV9yi+7dQQgLU+KdEVfgxZ1qTJ7K72ctw2hjLcZ8dYY06Xh2DHRfcoZc+U3OPOSakU0LarSbOyAeud4jPq2J7yUgdLyah6LdTP8fXKTEy27YeQpqxjlf62b55EdcjeiJhRF7dqjm41wUv0CBIFK3DRD203J6Dl5q7nBzMtqkwOr0uc++CJSPPNl6uWCYkkucgYuJSdg6qTN5i4907riJLoe8sVvZ3HwNi08mJcvFcS38AqlZb3U/dcgq7lclwaluPCVa4Qa3V1Pffn1jtu3M6tqUp7MQoFjDW5jPn62Ns+Tc+8aOciZhpidsBw2kOgLLfYft4QKBgQDkDLxUrgm2Kk8JwQbaAC6Gs4B/qhUW9Iid0d+O+oNlq82MpcTNxXl4IoVI0kQbucd4eRR/ZF0Rj+7I2HjU4aGVFdQO8nSAKWm9SERt/24izkXgSv2YJv0RDyqwMf6uv8bnK7JwdXtnIE6+5+5+qiQ9UB2rKIIU/D/we2KF1FpTvwKBgQDeWaATyeue7hvf6V767ZEtBfu5moiHz+Rk0AsK+bAE51XzgNZeUjB9jd2YtdkaoEnSaJfIOSBH3cr/YT7hSQgrazcqPmC4VvceeQc75PmIEbbW2CBjKeF3Wlm6ISz5D7O//Fr2c7g9t0nxDOPjc+rdfShZrRg5/2Rv3MuxMazp9wKBgQCvyp12jT4RPWX19+TnMVKsJTy9rIdbTZ7uQTUay0N0oU3uyG3/zOTI1Zt2uhckZD4+QN+rH9uaSSBhlHT4bQGYod34s69YiBPphAaz4D2u+ODmeAgqPIvBlbZrYe6YGF8kHgwMIpPAuCfbg3/WBiOvW82y/aPgt142a3ZUAZCrkwKBgBXi9pncD2BmicHho+LJTbgD1cJwTq4nrZCq1dtvtn7VEqXUccV5C6LgOwbUJ5myW3Hlr8MatG2+jEPVG65rVO2JMTXsS/L5RHvwZ+DiahmVvMyrG40HS1VHRHvI1jdx7zyfp4iI3YLdrt6WaTwzZdQFhNpG6pKS7B0Cu94mSKIDAoGAb2a4gCNE347TpyqPKVi3enik97eHppVh9pcb4hdThVLDUQndlf4peQltGoUoV6gEtKzuC5sq5HstQcpp6HXrqy/G7ATvU1m8jm7DXzxxMIImbaQs5vJ0EbxOWZpwQxXw/UAcI+o+pzbPWG8gITkOpXfl4uzPRwWqqrDEiPGIBHo=");
-		System.out.println("签名原串："+content);
-		System.out.println("签名串："+signstr);
-		System.out.println();
-		System.out.println("---------------公钥校验签名------------------");
-		System.out.println("签名原串："+content);
-		System.out.println("签名串："+signstr);
-		System.out.println("验签结果："+ RSAUtils.doCheck(content, signstr, "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxhLiWH7juYtZHHJAbuMn/pxj3FzCftqJR9skB/ZdbjeQXNghhW+XDxACwtRU0covTRsUMPWJVc4P5m4TWrFasd9tI8PB4Sw/3XiMdqVpw5HJyL5l+ZpwfRCWJh5eVr8WNs8ZVFaL+PgkBx+2a07XHgXWlyEh4niLlZ1ruwlWprzCS3a+a+gyuISi39lnCF23mzZRQXRCWTXwOtNwcJ5AegTnNMthpsaEDd4BAQUOxoOnHLzB6GWFcM76HKGzW0NdedugRQjss6HjSTa/8Z2yQLNo+xoWX0Yv5E+4lF4MpWpTysojL6LzGCv5pAed7Ty4tlE8WpySocpfSDAs7LOkSQIDAQAB"));
-		System.out.println();
+		try {
+			// 生成密钥对
+//			KeyPair keyPair = getKeyPair();
+//			String privateKey = new String(Base64.encodeBase64(keyPair.getPrivate().getEncoded()));
+//			String publicKey = new String(Base64.encodeBase64(keyPair.getPublic().getEncoded()));
+//			System.out.println("私钥:" + privateKey);
+//			System.out.println("公钥:" + publicKey);
+//			// RSA加密
+//			String data = "待加密的文字内容";
+//			String encryptData = encrypt(data, getPublicKey(publicKey));
+//			System.out.println("加密后内容:" + encryptData);
+//			// RSA解密
+//			String decryptData = decrypt(encryptData, getPrivateKey(privateKey));
+//			System.out.println("解密后内容:" + decryptData);
+//
+//			// RSA签名
+//			String sign = sign(data, getPrivateKey(privateKey));
+//			// RSA验签
+//			boolean result = verify(data, getPublicKey(publicKey), sign);
+//			System.out.print("验签结果:" + result);
+			String privateKey = "MIICdQIBADANBgkqhkiG9w0BAQEFAASCAl8wggJbAgEAAoGBAILIk/bpuaep3S6EHCLkx3dJVzVv+DQ3ToOgyhdt5teH+HUrmCKoanN+hBF3NekERwrPZNaVbLnSEPGvN1dP0gW+dwYNSldtSvGnA/KtO8EVA5eMrC0/HKLrubHZ/Gemo6UD17fKZCErkaGmz67dBxlGbG64hFvS4oSpB4Y6EZ1zAgMBAAECgYA4xJWtZJBonYvbaA7KeqG2PohzMpH7IFKdQgrWlqbPwT5wpaaYzJ/AWBc9eZBV/7xSjelIV33lPrCKJ7MO3B/eLZAKfyp5W1LNB/drfMpXeWYKkRs9C30VgkjH7vMYoy5RPx6wKwzwY9yheV4Zdh9G2Twn6Nit8qOr4u4JF6I/MQJBALedrMSEDvHBwYhXhisijiAQdibgS922Sgyxk1DUrnlLuYFKpvF5uCEGd5URbypAvwiOowOTzNZxffFD2a+Qz5sCQQC2VxynpO+5sR+JUaLMZbUyCmTIQiDfSc+MmwLZATXk+OuvnpyUgwhbDNlBr4lkBnaH0A17W4il1jMNKtl6GoMJAkB2gFRYH8JlVF7K13HHtO101CrsvCU6WcNAnfotWJWhwrVeNAe6IIwtBDd5BV9xLYgcxbF/RYwVefmGE/wRyquxAkB+8hkOEkOgGVOma8KW4TyMUTYnQfrW2fF4p7cM083s0uxrgVbsAmn/0esz0v0pOWKuXUf1mR2Cr6UtRqbQXsLZAkAtKWx5KOTx8fuluUus0Ut4RQP7bRrX4s6UqqF1vBnFttsYIqFq/q28u/GFQ+BB3xCQwF3H0yUyQb9GXfebxVlk";
+			String publicKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCCyJP26bmnqd0uhBwi5Md3SVc1b/g0N06DoMoXbebXh/h1K5giqGpzfoQRdzXpBEcKz2TWlWy50hDxrzdXT9IFvncGDUpXbUrxpwPyrTvBFQOXjKwtPxyi67mx2fxnpqOlA9e3ymQhK5Ghps+u3QcZRmxuuIRb0uKEqQeGOhGdcwIDAQAB";
+			String data="12311723046412345api test217204937522560xA33781f85f20CEE1bAf63aCA36e72Afc165bB5CC";
+			String sign = "HddPJ0HC91jo9RPRpNr2oU8BUMogqG1QW7i+jsuDnCO7M1PL400T8si18RYYzL16VV349jSz+1uAl3G23d6gDgjgUDjw6kO2O8ezxgGpKCNt1y0JUjNF9ZBDmrq0w36l4DWLfslme+I3ZTcVpdzDHakPu2ATkJygDWxEXhmI6MI=";
+
+			boolean result = verify(data, getPublicKey(publicKey), sign);
+			System.out.println(result);
+			sendData(privateKey);
+
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.print("加解密异常");
+		}
 	}
+
+	private static void sendData(String privateKey) throws Exception{
+		String reqData = "{\n" +
+				"    \"description\":\"api test\",\n" +
+				"    \"amount\":\"123\",\n" +
+				"    \"toAddress\": \"0xA33781f85f20CEE1bAf63aCA36e72Afc165bB5CC\",\n" +
+				"    \"apiId\": \"1\",\n" +
+				"    \"closeAt\":\"1723046412345\",\n" +
+				"    \"requestId\":\"4\",\n" +
+				"    \"timestamp\":1720493752256\n" +
+				"}";
+		JSONObject jsonObject = JSONUtil.parseObj(reqData);
+		String sortedData = getSortedData(jsonObject);
+		String sign = sign(sortedData, getPrivateKey(privateKey));
+		jsonObject.set("sign",sign);
+		System.out.println("sortedData="+sortedData);
+		System.out.println("sign="+sign);
+		String url = "http://localhost:8081/api/pay/order/create";
+		String post = HttpUtil.post(url, jsonObject.toString());
+		System.out.println("ssssssss="+post);
+	}
+
 }
+
