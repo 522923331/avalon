@@ -26,7 +26,7 @@ public class AddressValidator implements ConstraintValidator<ValidAddress,String
     @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {
         if (value == null || value.isEmpty()) {
-            return true;
+            return false;
         }
         String regexEthereum = String.format("^0x[a-fA-F0-9]{%s}$",addressSize -2);
         Pattern patternEthereum = Pattern.compile(regexEthereum);
