@@ -1,5 +1,7 @@
 package iplay.cool.utils.encrypt;
 
+import cn.hutool.http.HttpRequest;
+import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
@@ -97,7 +99,7 @@ public class RSAUtils {
 		out.close();
 		// 获取加密内容使用base64进行编码,并以UTF-8为标准转化成字符串
 		// 加密后的字符串
-		return new String(Base64.encodeBase64String(encryptedData));
+		return Base64.encodeBase64String(encryptedData);
 	}
 
 	/**
@@ -185,10 +187,17 @@ public class RSAUtils {
 		return sb.toString();
 	}
 
+	public static String getSortedData(JSONObject jsonObject,String timestamp){
+		JSONObject jo = jsonObject.set("timestamp", timestamp);
+		return getSortedData(jo);
+	}
+
 	public static void main(String[] args) {
 		try {
 			// 生成密钥对
-//			KeyPair keyPair = getKeyPair();
+			KeyPair keyPair = getKeyPair();
+			System.out.println("公钥："+java.util.Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded()));
+			System.out.println("私钥钥："+java.util.Base64.getEncoder().encodeToString(keyPair.getPrivate().getEncoded()));
 //			String privateKey = new String(Base64.encodeBase64(keyPair.getPrivate().getEncoded()));
 //			String publicKey = new String(Base64.encodeBase64(keyPair.getPublic().getEncoded()));
 //			System.out.println("私钥:" + privateKey);
@@ -207,14 +216,14 @@ public class RSAUtils {
 //			boolean result = verify(data, getPublicKey(publicKey), sign);
 //			System.out.print("验签结果:" + result);
 			String privateKey = "MIICdQIBADANBgkqhkiG9w0BAQEFAASCAl8wggJbAgEAAoGBAILIk/bpuaep3S6EHCLkx3dJVzVv+DQ3ToOgyhdt5teH+HUrmCKoanN+hBF3NekERwrPZNaVbLnSEPGvN1dP0gW+dwYNSldtSvGnA/KtO8EVA5eMrC0/HKLrubHZ/Gemo6UD17fKZCErkaGmz67dBxlGbG64hFvS4oSpB4Y6EZ1zAgMBAAECgYA4xJWtZJBonYvbaA7KeqG2PohzMpH7IFKdQgrWlqbPwT5wpaaYzJ/AWBc9eZBV/7xSjelIV33lPrCKJ7MO3B/eLZAKfyp5W1LNB/drfMpXeWYKkRs9C30VgkjH7vMYoy5RPx6wKwzwY9yheV4Zdh9G2Twn6Nit8qOr4u4JF6I/MQJBALedrMSEDvHBwYhXhisijiAQdibgS922Sgyxk1DUrnlLuYFKpvF5uCEGd5URbypAvwiOowOTzNZxffFD2a+Qz5sCQQC2VxynpO+5sR+JUaLMZbUyCmTIQiDfSc+MmwLZATXk+OuvnpyUgwhbDNlBr4lkBnaH0A17W4il1jMNKtl6GoMJAkB2gFRYH8JlVF7K13HHtO101CrsvCU6WcNAnfotWJWhwrVeNAe6IIwtBDd5BV9xLYgcxbF/RYwVefmGE/wRyquxAkB+8hkOEkOgGVOma8KW4TyMUTYnQfrW2fF4p7cM083s0uxrgVbsAmn/0esz0v0pOWKuXUf1mR2Cr6UtRqbQXsLZAkAtKWx5KOTx8fuluUus0Ut4RQP7bRrX4s6UqqF1vBnFttsYIqFq/q28u/GFQ+BB3xCQwF3H0yUyQb9GXfebxVlk";
-			String publicKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCCyJP26bmnqd0uhBwi5Md3SVc1b/g0N06DoMoXbebXh/h1K5giqGpzfoQRdzXpBEcKz2TWlWy50hDxrzdXT9IFvncGDUpXbUrxpwPyrTvBFQOXjKwtPxyi67mx2fxnpqOlA9e3ymQhK5Ghps+u3QcZRmxuuIRb0uKEqQeGOhGdcwIDAQAB";
-			String data="12311723046412345api test217204937522560xA33781f85f20CEE1bAf63aCA36e72Afc165bB5CC";
-			String sign = "HddPJ0HC91jo9RPRpNr2oU8BUMogqG1QW7i+jsuDnCO7M1PL400T8si18RYYzL16VV349jSz+1uAl3G23d6gDgjgUDjw6kO2O8ezxgGpKCNt1y0JUjNF9ZBDmrq0w36l4DWLfslme+I3ZTcVpdzDHakPu2ATkJygDWxEXhmI6MI=";
-
-			boolean result = verify(data, getPublicKey(publicKey), sign);
-			System.out.println(result);
-			sendData(privateKey);
-
+//			String publicKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCCyJP26bmnqd0uhBwi5Md3SVc1b/g0N06DoMoXbebXh/h1K5giqGpzfoQRdzXpBEcKz2TWlWy50hDxrzdXT9IFvncGDUpXbUrxpwPyrTvBFQOXjKwtPxyi67mx2fxnpqOlA9e3ymQhK5Ghps+u3QcZRmxuuIRb0uKEqQeGOhGdcwIDAQAB";
+//			String data="12311723046412345api test217204937522560xA33781f85f20CEE1bAf63aCA36e72Afc165bB5CC";
+//			String sign = "HddPJ0HC91jo9RPRpNr2oU8BUMogqG1QW7i+jsuDnCO7M1PL400T8si18RYYzL16VV349jSz+1uAl3G23d6gDgjgUDjw6kO2O8ezxgGpKCNt1y0JUjNF9ZBDmrq0w36l4DWLfslme+I3ZTcVpdzDHakPu2ATkJygDWxEXhmI6MI=";
+//
+//			boolean result = verify(data, getPublicKey(publicKey), sign);
+//			System.out.println(result);
+//			sendData(privateKey);
+//			getByOrder(privateKey);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -224,14 +233,25 @@ public class RSAUtils {
 
 	private static void sendData(String privateKey) throws Exception{
 		String reqData = "{\n" +
-				"    \"description\":\"api test\",\n" +
-				"    \"amount\":\"123\",\n" +
+				"    \"description\":\"api testaaaaaaaaaaaaaaa\",\n" +
+				"    \"amount\":\"12333121.12\",\n" +
 				"    \"toAddress\": \"0xA33781f85f20CEE1bAf63aCA36e72Afc165bB5CC\",\n" +
-				"    \"apiId\": \"1\",\n" +
 				"    \"closeAt\":\"1723046412345\",\n" +
-				"    \"requestId\":\"4\",\n" +
-				"    \"timestamp\":1720493752256\n" +
+				"    \"createAt\":\"1723046402345\",\n" +
+				"    \"timestamp\":\"1720493752256\",\n" +
+				"    \"apiId\":\"1\",\n" +
+				"    \"requestId\":\"22\"\n" +
 				"}";
+//		String reqData = "{\n" +
+//				"    \"description\":\"api test\",\n" +
+//				"    \"amount\":\"66\",\n" +
+//				"    \"toAddress\": \"0x93577fA8d46D29cF233d6121758E2dB00F5cb0a9\",\n" +
+//				"    \"closeAt\":\"1723199604000\",\n" +
+//				"    \"createAt\":\"1720493752256\",\n" +
+//				"    \"timestamp\":\"1720493752256\",\n" +
+//				"    \"apiId\":\"3203001000646087578\",\n" +
+//				"    \"requestId\":\"10012923067132547072\"\n" +
+//				"}";
 		JSONObject jsonObject = JSONUtil.parseObj(reqData);
 		String sortedData = getSortedData(jsonObject);
 		String sign = sign(sortedData, getPrivateKey(privateKey));
@@ -239,8 +259,67 @@ public class RSAUtils {
 		System.out.println("sortedData="+sortedData);
 		System.out.println("sign="+sign);
 		String url = "http://localhost:8081/api/pay/order/create";
-		String post = HttpUtil.post(url, jsonObject.toString());
-		System.out.println("ssssssss="+post);
+		HttpRequest postRequest = HttpUtil.createPost(url).body(jsonObject.toString());
+//		postRequest.header("timestamp","1720493752256");
+//		postRequest.header("apiId","1");
+//		postRequest.header("sign",sign);
+
+		HttpResponse response = postRequest.execute();
+//		String post = HttpUtil.post(url, jsonObject.toString());
+		String body = response.body();
+		System.out.println("body  "+body);
+//		String sign1 = response.header("sign");
+//		String timestamp = response.header("timestamp");
+		JSONObject jo = JSONUtil.parseObj(body);
+		Object dataObj = jo.get("data");
+		JSONObject data = JSONUtil.parseObj(dataObj);
+		String sign1 = String.valueOf(data.get("sign"));
+		data.remove("sign");
+		String sortedData1 = getSortedData(data);
+		String timestamp = String.valueOf(data.get("timestamp"));
+		String apiPub = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCPwL+wyaqWqKDruIcn6OusaJo7TysLuGLUTHL8Ol6m0L2StlS8lTV+2rQcgStVX5CfotKv8nGHb8rtR4deXvynSm3eqYE28JdVj36tzhy2Eqs8/Fd0TjYbsVYuz9TTjoFfxrdwRc4lysP+GMCMRrcszjz1LIKqaDSX3TBd5fXnbQIDAQAB";
+		boolean verify = verify(sortedData1, RSAUtils.getPublicKey(apiPub), sign1);
+		System.out.println("sign1  "+sign1);
+		System.out.println("timestamp  " +timestamp);
+		System.out.println("verify  "+verify);
+	}
+
+	private static void getByOrder(String privateKey) throws Exception{
+		String reqData = "{\n" +
+				"    \"orderNo\":\"10113635631916470272\",\n" +
+				"    \"timestamp\":\"1720493752256\",\n" +
+				"    \"apiId\":\"1\"\n" +
+				"}";
+		JSONObject jsonObject = JSONUtil.parseObj(reqData);
+		String sortedData = getSortedData(jsonObject);
+		String sign = sign(sortedData, getPrivateKey(privateKey));
+		jsonObject.set("sign",sign);
+		System.out.println("sortedData="+sortedData);
+		System.out.println("sign="+sign);
+		String url = "http://localhost:8081/api/pay/order/getByOrderNo";
+		HttpRequest postRequest = HttpUtil.createPost(url).body(jsonObject.toString());
+//		postRequest.header("timestamp","1720493752256");
+//		postRequest.header("apiId","1");
+//		postRequest.header("sign",sign);
+
+		HttpResponse response = postRequest.execute();
+//		String post = HttpUtil.post(url, jsonObject.toString());
+		String body = response.body();
+//		String sign1 = response.header("sign");
+//		String timestamp = response.header("timestamp");
+		JSONObject jo = JSONUtil.parseObj(body);
+		Object dataObj = jo.get("data");
+		JSONObject data = JSONUtil.parseObj(dataObj);
+		String sign1 = String.valueOf(data.get("sign"));
+		String timestamp = String.valueOf(data.get("timestamp"));
+		data.remove("sign");
+		String sortedData1 = getSortedData(data);
+		String apiPub = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCPwL+wyaqWqKDruIcn6OusaJo7TysLuGLUTHL8Ol6m0L2StlS8lTV+2rQcgStVX5CfotKv8nGHb8rtR4deXvynSm3eqYE28JdVj36tzhy2Eqs8/Fd0TjYbsVYuz9TTjoFfxrdwRc4lysP+GMCMRrcszjz1LIKqaDSX3TBd5fXnbQIDAQAB";
+		boolean verify = verify(sortedData1, RSAUtils.getPublicKey(apiPub), sign1);
+		System.out.println("body  "+body);
+		System.out.println("sign1  "+sign1);
+		System.out.println("timestamp  " +timestamp);
+		System.out.println("verify  "+verify);
 	}
 
 }
