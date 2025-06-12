@@ -19,6 +19,7 @@
         <module>utils</module>
         <module>pattern</module>
         <module>service_handler</module>
+        <module>project-focus</module>
     </modules>
 
     <properties>
