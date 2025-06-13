@@ -11,6 +11,7 @@ import iplay.cool.websocket.listener.WebSocketMessageListener;
 import iplay.cool.websocket.listener.WebSocketMessageListenerFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.enums.ReadyState;
 import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
@@ -73,8 +74,15 @@ public abstract class BaseWebSocketClient extends WebSocketClient {
         log.info("{} WebSocket重连开始", channelConfig.getChannelCode());
         try {
             if (isOpen()) {
-                log.info("{} WebSocket是打开状态，准备关闭并重连", channelConfig.getChannelCode());
-                super.close();
+                log.info("{} WebSocket已打开，无需重连,重启心跳", channelConfig.getChannelCode());
+                stopHeartbeat();
+                lastPongReceivedTime = System.currentTimeMillis();
+                startHeartbeat();
+                return;
+            } else {
+                if (this.getReadyState() != ReadyState.NOT_YET_CONNECTED) {
+                    closeBlocking();
+                }
             }
             this.reconnectBlocking();
         } catch (InterruptedException e) {
