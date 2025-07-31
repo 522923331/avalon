@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket 客户端</title>
+</head>
+<body>
+<h2>WebSocket 连接测试</h2>
+
+<label>bizCode: <input id="bizCode" value="wallet" /></label><br/>
+<label>userId: <input id="userId" value="10081257" /></label><br/>
+<label>connKey (token): <input id="connKey" value="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJQTEFURk9STSI6IlBDIiwiVVNFUl9ERVZJQ0UiOiJNb3ppbGxhLzUuMCAoTWFjaW50b3NoOyBJbnRlbCBNYWMgT1MgWCAxMF8xNV83KSBBcHBsZVdlYktpdC81MzcuMzYgKEtIVE1MLCBsaWtlIEdlY2tvKSBDaHJvbWUvMTM4LjAuMC4wIFNhZmFyaS81MzcuMzYiLCJTVUJfRU1BSUwiOm51bGwsIlVTRVJfSUQiOiIxMDA4MTI1NyIsIlVTRVJfTkFNRSI6IuWtmeWFiOeUnzE3NTE4NTcyNDMiLCJleHAiOjE3NTI0Nzc0NDUsIlVTRVJfSVAiOiIxMDMuNjAuMjQ4LjIwOSIsIlhFTUFJTCI6Im5vIn0.jAS_snZaD3-nkNkVTUr193aYze3xwfEVqKq8zb-Quyk" /></label><br/><br/>
+
+<button onclick="connectWebSocket()">连接</button>
+<button onclick="closeWebSocket()">关闭连接</button>
+
+<hr>
+<div id="log" style="white-space: pre-line; border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto;"></div>
+
+<script>
+    let socket = null;
+    let heartbeatTimer = null;
+
+    function log(message) {
+        const logDiv = document.getElementById("log");
+        logDiv.textContent += message + "\n";
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function connectWebSocket() {
+        closeWebSocket(); // 避免重复连接
+
+        const bizCode = document.getElementById("bizCode").value;
+        const userId = document.getElementById("userId").value;
+        const connKey = document.getElementById("connKey").value;
+
+        const wsUrl = `wss://walletqa.kun.global/kws/${bizCode}/${userId}/${connKey}`;
+        socket = new WebSocket(wsUrl);
+
+        socket.onopen = function () {
+            log("[连接成功] " + wsUrl);
+            heartbeatTimer = setInterval(() => {
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send("1");
+                    log("[心跳] 发送: 1");
+                }
+            }, 30000);
+        };
+
+        socket.onmessage = function (event) {
+            log("[收到消息] " + event.data);
+        };
+
+        socket.onclose = function () {
+            log("[连接关闭]");
+            clearInterval(heartbeatTimer);
+            heartbeatTimer = null;
+            socket = null;
+        };
+
+        socket.onerror = function (error) {
+            log("[连接错误]");
+            console.error(error);
+        };
+    }
+
+    function closeWebSocket() {
+        if (socket) {
+            socket.close();
+            log("[手动关闭连接]");
+            clearInterval(heartbeatTimer);
+            heartbeatTimer = null;
+            socket = null;
+        }
+    }
+</script>
+</body>
+</html>
